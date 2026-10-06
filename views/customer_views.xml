@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    <record id="view_spa_customer_list" model="ir.ui.view">
+        <field name="name">spa.customer.list</field>
+        <field name="model">spa.customer</field>
+
+        <field name="arch" type="xml">
+            <list string="Khách hàng">
+                <field name="customer_code"/>
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="gender"/>
+                <field name="birthday"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_spa_customer_form" model="ir.ui.view">
+        <field name="name">spa.customer.form</field>
+        <field name="model">spa.customer</field>
+        <field name="arch" type="xml">
+            <form string="Khách hàng">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="customer_code"/>
+                            <field name="phone"/>
+        
+                        </group>
+
+                        <group>
+                            <field name="birthday"/>
+                            <field name="gender"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <field name="address"/>
+                        <field name="note"/>
+                    </group>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ACTION -->
+    <record id="action_spa_customer" model="ir.actions.act_window">
+        <field name="name">Khách hàng</field>
+        <field name="res_model">spa.customer</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+
+    <!-- MENU -->
+    <menuitem
+        id="menu_spa_root"
+        name="Spa Management"
+        sequence="10"
+    />
+
+    <menuitem
+        id="menu_spa_customer"
+        name="Khách hàng"
+        parent="menu_spa_root"
+        action="action_spa_customer"
+        sequence="10"
+    />
+
+</odoo>

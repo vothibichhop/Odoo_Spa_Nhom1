@@ -26,4 +26,20 @@
         sequence="20"
     />
 
+    <menuitem
+        id="menu_spa_appointment"
+        name="Lịch hẹn và liệu trình"
+        parent="menu_spa_root"
+        action="action_spa_appointment"
+        sequence="30"
+    />
+
+    <menuitem
+        id="menu_spa_service"
+        name="Dịch vụ"
+        parent="menu_spa_root"
+        action="action_spa_service"
+        sequence="40"
+    />
+
 </odoo>

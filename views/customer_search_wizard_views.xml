@@ -6,7 +6,7 @@
         <field name="arch" type="xml">
             <form string="Tra cứu khách hàng">
                 <group>
-                    <field name="search_term" placeholder="Nhập tên, số điện thoại hoặc mã khách hàng"/>
+                    <field name="search_term" placeholder="Nhập tên, số điện thoại, email hoặc mã khách hàng"/>
                 </group>
                 <footer>
                     <button name="action_search" string="Tra cứu" type="object" class="btn-primary"/>

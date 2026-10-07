@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_spa_customer_user,spa.customer.user,model_spa_customer,,1,1,1,1
+access_spa_service_user,spa.service.user,model_spa_service,base.group_user,1,1,1,1
+access_spa_appointment_user,spa.appointment.user,model_spa_appointment,base.group_user,1,1,1,1
 access_spa_customer_search_wizard_user,spa.customer.search.wizard.user,model_spa_customer_search_wizard,base.group_user,1,1,1,1

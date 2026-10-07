@@ -1,26 +1,27 @@
 {
-    'name': 'Spa - Quản lý khách hàng',
-    'version': '1.0',
+    'name': 'Quản lý khách hàng Spa',
+    'version': '1.1.1',
     'category': 'Spa Management',
     'summary': 'Quản lý thông tin khách hàng Spa',
     'description': """
         Module quản lý khách hàng cho hệ thống Spa.
         Chức năng:
-        - Quản lý thông tin khách hàng
-        - Phân loại khách hàng
-        - Quản lý lịch sử giao dịch
-        - Theo dõi lịch sử chăm sóc
-        - Quản lý điểm thành viên
-        - Quản lý thông tin và nhu cầu khách hàng
-        - Tìm kiếm và tra cứu khách hàng
+        - Mở rộng hồ sơ khách hàng Contact có sẵn của Odoo
+        - Phân loại bằng Contact Tags; ghi chú và hoạt động qua chatter
+        - Lưu nhu cầu chăm sóc, tình trạng da, sở thích và lưu ý
+        - Theo dõi điểm bằng Odoo Loyalty và lịch sử liệu trình bằng lịch hẹn Spa
+        - Tìm kiếm theo tên, điện thoại, email hoặc mã khách hàng
     """,
     'author': 'Spa ERP',
     'depends': [
-        'base',
+        'contacts',
+        'loyalty',
     ],
     'data': [
         'security/ir.model.access.csv',
+        'data/customer_sequence.xml',
         'views/customer_views.xml',
+        'views/customer_loyalty_views.xml',
         'views/customer_search_wizard_views.xml',
         'views/service_views.xml',
         'views/appointment_views.xml',

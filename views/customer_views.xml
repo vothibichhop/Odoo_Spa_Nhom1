@@ -1,101 +1,70 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_res_partner_form_spa" model="ir.ui.view">
-        <field name="name">res.partner.form.spa</field>
+    <record id="view_partner_form_customer_management" model="ir.ui.view">
+        <field name="name">res.partner.form.customer.management</field>
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_spa_appointments"
-                        type="object"
-                        class="oe_stat_button"
-                        icon="fa-calendar"
-                        invisible="not is_spa_customer">
-                    <field name="spa_appointment_count"
-                           widget="statinfo"
-                           string="Lịch hẹn"/>
-                </button>
-            </xpath>
-            <xpath expr="//field[@name='category_id']" position="after">
-                <field name="is_spa_customer" invisible="1"/>
-                <field name="spa_customer_code"
-                       invisible="not is_spa_customer"/>
-                <field name="customer_type"
-                       invisible="not is_spa_customer"/>
-            </xpath>
-            <xpath expr="//notebook" position="inside">
-                <page string="Thông tin Spa"
-                      name="spa_customer_info"
-                      invisible="not is_spa_customer">
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Chăm sóc khách hàng" name="customer_care" groups="spa.group_customer_management_user">
                     <group>
-                        <group string="Thông tin khách hàng">
-                            <field name="spa_birthday"/>
-                            <field name="spa_gender"/>
-                            <field name="spa_skin_type"/>
+                        <group>
+                            <field name="customer_code"/>
+                            <field name="customer_type"/>
+                            <field name="loyalty_point" readonly="1"/>
                         </group>
-                        <group string="Thông tin chăm sóc">
-                            <field name="skin_condition"/>
+                        <group>
+                            <field name="care_note" placeholder="Lưu ý khi chăm sóc khách hàng..."/>
                         </group>
                     </group>
-                    <group>
-                        <field name="customer_need"/>
-                        <field name="customer_note"/>
-                    </group>
-                    <field name="spa_appointment_ids" readonly="1">
-                        <list>
-                            <field name="appointment_date"/>
-                            <field name="service_id"/>
-                            <field name="start_time"/>
-                            <field name="status"/>
-                        </list>
-                    </field>
+                    <notebook>
+                        <page string="Nhu cầu chăm sóc">
+                            <field name="care_need_ids" context="{'default_partner_id': id}">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="need_type"/>
+                                    <field name="state"/>
+                                    <field name="next_date"/>
+                                    <field name="user_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Hồ sơ tình trạng da">
+                            <field name="skin_profile_ids" context="{'default_partner_id': id}">
+                                <list editable="bottom">
+                                    <field name="date_recorded"/>
+                                    <field name="skin_type"/>
+                                    <field name="condition_note"/>
+                                    <field name="product_caution"/>
+                                    <field name="user_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Liệu trình">
+                            <field name="treatment_ids" context="{'default_partner_id': id}">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="start_date"/>
+                                    <field name="end_date"/>
+                                    <field name="state"/>
+                                    <field name="user_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Lịch sử điểm">
+                            <field name="loyalty_transaction_ids" context="{'default_partner_id': id}">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="name"/>
+                                    <field name="transaction_type"/>
+                                    <field name="points"/>
+                                    <field name="state"/>
+                                    <field name="applied_by"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </page>
             </xpath>
         </field>
-    </record>
-
-    <record id="view_res_partner_filter_spa" model="ir.ui.view">
-        <field name="name">res.partner.search.spa</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_res_partner_filter"/>
-        <field name="arch" type="xml">
-            <xpath expr="//search" position="inside">
-                <field name="spa_customer_code" string="Mã khách hàng"/>
-                <filter string="Khách hàng Spa"
-                        name="spa_customers"
-                        domain="[('is_spa_customer', '=', True)]"/>
-            </xpath>
-        </field>
-    </record>
-
-    <record id="view_res_partner_tree_spa" model="ir.ui.view">
-        <field name="name">res.partner.list.spa</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_tree"/>
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='display_name']" position="after">
-                <field name="spa_customer_code"
-                       string="Mã khách hàng"
-                       optional="show"/>
-                <field name="spa_birthday"
-                       string="Ngày sinh"
-                       optional="hide"/>
-                <field name="spa_gender"
-                       string="Giới tính"
-                       optional="hide"/>
-                <field name="customer_type"
-                       string="Phân loại"
-                       optional="show"/>
-            </xpath>
-        </field>
-    </record>
-
-    <record id="action_spa_customer" model="ir.actions.act_window">
-        <field name="name">Khách hàng</field>
-        <field name="res_model">res.partner</field>
-        <field name="view_mode">kanban,list,form,activity</field>
-        <field name="search_view_id" ref="base.view_res_partner_filter"/>
-        <field name="domain">[('is_spa_customer', '=', True)]</field>
-        <field name="context">{'default_is_spa_customer': True, 'default_is_company': False}</field>
     </record>
 </odoo>

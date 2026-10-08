@@ -1,0 +1,16 @@
+<odoo>
+    <menuitem id="menu_customer_management_root" name="Quản lý khách hàng"
+        sequence="35" groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_customer_care_need" name="Nhu cầu chăm sóc"
+        parent="menu_customer_management_root" action="action_customer_care_need" sequence="10"
+        groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_customer_skin_profile" name="Hồ sơ tình trạng da"
+        parent="menu_customer_management_root" action="action_customer_skin_profile" sequence="20"
+        groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_customer_treatment" name="Liệu trình khách hàng"
+        parent="menu_customer_management_root" action="action_customer_treatment" sequence="30"
+        groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_customer_loyalty" name="Điểm tích lũy"
+        parent="menu_customer_management_root" action="action_customer_loyalty" sequence="40"
+        groups="spa.group_customer_management_user"/>
+</odoo>

@@ -4,12 +4,20 @@
         <field name="name">spa.appointment.tree</field>
         <field name="model">spa.appointment</field>
         <field name="arch" type="xml">
-            <list>
-                <field name="customer_id"/>
-                <field name="service_id"/>
+            <list decoration-success="status == 'done'"
+                  decoration-info="status == 'confirmed'"
+                  decoration-muted="status == 'cancelled'">
                 <field name="appointment_date"/>
-                <field name="start_time"/>
-                <field name="status"/>
+                <field name="start_time" widget="float_time"/>
+                <field name="customer_id"/>
+                <field name="customer_phone" optional="show"/>
+                <field name="employee_id"/>
+                <field name="room_id"/>
+                <field name="bed_id"/>
+                <field name="service_summary"/>
+                <field name="guest_count"/>
+                <field name="service_id" optional="hide"/>
+                <field name="status" widget="badge"/>
             </list>
         </field>
     </record>
@@ -19,26 +27,154 @@
         <field name="model">spa.appointment</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <button name="action_confirm" type="object" string="Xác nhận lịch"
+                            class="btn-primary" invisible="status != 'draft'"/>
+                    <button name="action_check_in" type="object" string="Khách đã đến"
+                            invisible="status != 'confirmed'"/>
+                    <button name="action_start" type="object" string="Bắt đầu dịch vụ"
+                            class="btn-primary" invisible="status != 'checked_in'"/>
+                    <button name="action_done" type="object" string="Hoàn thành"
+                            class="btn-primary" invisible="status != 'in_progress'"/>
+                    <button name="action_cancel" type="object" string="Hủy lịch"
+                            invisible="status in ('done', 'cancelled')"/>
+                    <field name="status" widget="statusbar" readonly="1"
+                           statusbar_visible="draft,confirmed,checked_in,in_progress,done,cancelled"/>
+                </header>
                 <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="customer_id" placeholder="Chọn hoặc tạo khách hàng"
+                                   context="{'default_is_spa_customer': True}"/>
+                        </h1>
+                    </div>
                     <group>
-                        <field name="customer_id"/>
-                        <field name="service_id"/>
-                        <field name="appointment_date"/>
-                        <field name="start_time"/>
-                        <field name="end_time"/>
-                        <field name="status"/>
+                        <group string="Thông tin khách hàng">
+                            <field name="customer_phone" required="1"
+                                   placeholder="Nhập số điện thoại gồm 10 chữ số"/>
+                            <field name="customer_address" placeholder="Chưa có địa chỉ"/>
+                        </group>
+                        <group string="Thông tin dịch vụ">
+                            <field name="appointment_line_ids"
+                                   required="not service_id and not service_product_id"
+                                   context="{'default_appointment_id': id}">
+                                <list>
+                                    <field name="product_id"
+                                           domain="[('type', 'in', ('service', 'combo'))]"/>
+                                    <field name="duration_minutes" required="1"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <field name="product_id"
+                                               domain="[('type', 'in', ('service', 'combo'))]"/>
+                                        <field name="duration_minutes"/>
+                                    </group>
+                                    <group string="Lựa chọn dịch vụ trong combo"
+                                           invisible="product_id.type != 'combo'">
+                                        <field name="combo_choice_ids" nolabel="1">
+                                            <list editable="bottom" create="0" delete="0">
+                                                <field name="combo_id" readonly="1"/>
+                                                <field name="combo_item_id"
+                                                       domain="[('combo_id', '=', combo_id)]"/>
+                                            </list>
+                                        </field>
+                                    </group>
+                                </form>
+                            </field>
+                            <field name="service_duration_minutes" readonly="1"/>
+                            <field name="service_product_id" invisible="1"/>
+                            <field name="service_id" readonly="1"
+                                   invisible="not service_id or service_product_id"/>
+                            <field name="guest_count"/>
+                        </group>
                     </group>
-                    <group>
-                        <field name="note"/>
+                    <group string="Nguồn lực phục vụ">
+                        <field name="employee_id" required="1"/>
+                        <field name="room_id" required="1"/>
+                        <field name="bed_id" required="1"
+                               domain="[('room_id', '=', room_id), ('active', '=', True)]"/>
+                    </group>
+                    <group string="Thời gian đặt lịch">
+                        <group>
+                            <field name="appointment_date"/>
+                        </group>
+                        <group>
+                            <field name="start_time" widget="float_time" required="1"/>
+                            <field name="end_time" widget="float_time" required="1"/>
+                        </group>
+                    </group>
+                    <div class="text-muted" invisible="not service_duration_minutes">
+                        Hãy nhập thời lượng từng dịch vụ; giờ kết thúc được đề xuất theo tổng thời lượng chạy nối tiếp.
+                    </div>
+                    <group string="Ghi chú">
+                        <field name="note" nolabel="1"
+                               placeholder="Thêm lưu ý cho lịch hẹn..."/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
 
+    <record id="view_spa_appointment_search" model="ir.ui.view">
+        <field name="name">spa.appointment.search</field>
+        <field name="model">spa.appointment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="customer_id"/>
+                <field name="service_product_id"/>
+                <field name="service_summary"/>
+                <field name="employee_id"/>
+                <field name="room_id"/>
+                <field name="bed_id"/>
+                <filter name="today" string="Hôm nay"
+                        domain="[('appointment_date', '=', context_today())]"/>
+                <filter name="upcoming" string="Sắp tới"
+                        domain="[('appointment_date', '&gt;=', context_today())]"/>
+                <separator/>
+                <filter name="draft" string="Nháp"
+                        domain="[('status', '=', 'draft')]"/>
+                <filter name="confirmed" string="Đã xác nhận"
+                        domain="[('status', '=', 'confirmed')]"/>
+                <filter name="cancelled" string="Đã hủy"
+                        domain="[('status', '=', 'cancelled')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_date" string="Ngày hẹn"
+                            context="{'group_by': 'appointment_date'}"/>
+                    <filter name="group_service" string="Dịch vụ"
+                            context="{'group_by': 'service_product_id'}"/>
+                    <filter name="group_employee" string="Nhân viên"
+                            context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_room" string="Phòng"
+                            context="{'group_by': 'room_id'}"/>
+                    <filter name="group_status" string="Trạng thái"
+                            context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_spa_appointment_calendar" model="ir.ui.view">
+        <field name="name">spa.appointment.calendar</field>
+        <field name="model">spa.appointment</field>
+        <field name="arch" type="xml">
+            <calendar string="Lịch hẹn Spa" date_start="calendar_start"
+                      date_stop="calendar_end" color="employee_id" mode="week"
+                      create="0">
+                <field name="name"/>
+                <field name="customer_id"/>
+                <field name="employee_id"/>
+                <field name="room_id"/>
+                <field name="bed_id"/>
+                <field name="service_summary"/>
+                <field name="status"/>
+            </calendar>
+        </field>
+    </record>
+
     <record id="action_spa_appointment" model="ir.actions.act_window">
         <field name="name">Lịch hẹn</field>
         <field name="res_model">spa.appointment</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">calendar,list,form</field>
+        <field name="search_view_id" ref="view_spa_appointment_search"/>
     </record>
 </odoo>

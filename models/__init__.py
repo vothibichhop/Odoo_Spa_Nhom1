@@ -4,4 +4,8 @@ from . import care_need_customer
 from . import skin_profile_customer
 from . import treatment_customer
 from . import service
+from . import product_template
+from . import room
+from . import bed
 from . import appointment
+from . import appointment_line

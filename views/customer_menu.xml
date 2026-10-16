@@ -1,6 +1,12 @@
 <odoo>
-    <menuitem id="menu_customer_management_root" name="Quản lý khách hàng"
+    <menuitem id="menu_customer_management_root" name="Quản lý Spa"
         sequence="35" groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_spa_appointment" name="Lịch hẹn"
+        parent="menu_customer_management_root" action="action_spa_appointment" sequence="5"
+        groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_spa_room" name="Phòng Spa"
+        parent="menu_customer_management_root" action="action_spa_room" sequence="6"
+        groups="spa.group_customer_management_manager"/>
     <menuitem id="menu_customer_care_need" name="Nhu cầu chăm sóc"
         parent="menu_customer_management_root" action="action_customer_care_need" sequence="10"
         groups="spa.group_customer_management_user"/>

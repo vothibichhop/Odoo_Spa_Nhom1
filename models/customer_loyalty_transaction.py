@@ -1,7 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
-
 class CustomerLoyaltyTransaction(models.Model):
     _name = 'customer.loyalty.transaction'
     _description = 'Giao dịch điểm tích lũy'

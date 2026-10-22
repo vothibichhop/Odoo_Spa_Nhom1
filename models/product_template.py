@@ -113,7 +113,6 @@ SPA_COMBO_CATEGORIES = [
     ('duration', 'Combo theo thời lượng'),
 ]
 
-
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 

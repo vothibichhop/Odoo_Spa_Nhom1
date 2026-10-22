@@ -9,3 +9,5 @@ from . import room
 from . import bed
 from . import appointment
 from . import appointment_line
+from . import sale_order
+from . import invoice_line

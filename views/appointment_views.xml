@@ -14,8 +14,11 @@
                 <field name="employee_id"/>
                 <field name="room_id"/>
                 <field name="bed_id"/>
+                <field name="booking_source" optional="show"/>
                 <field name="service_summary"/>
                 <field name="guest_count"/>
+                <field name="invoice_payment_state" widget="badge" optional="show"
+                       groups="spa.group_spa_billing_user"/>
                 <field name="service_id" optional="hide"/>
                 <field name="status" widget="badge"/>
             </list>
@@ -34,8 +37,13 @@
                             invisible="status != 'confirmed'"/>
                     <button name="action_start" type="object" string="Bắt đầu dịch vụ"
                             class="btn-primary" invisible="status != 'checked_in'"/>
-                    <button name="action_done" type="object" string="Hoàn thành"
-                            class="btn-primary" invisible="status != 'in_progress'"/>
+                    <button name="action_done" type="object" string="Hoàn thành &amp; thanh toán"
+                            class="btn-primary" groups="spa.group_spa_billing_user"
+                            invisible="status != 'in_progress'"/>
+                    <button name="action_open_sale_order" type="object" string="Mở đơn hàng"
+                            groups="spa.group_spa_billing_user" invisible="not sale_order_id"/>
+                    <button name="action_open_invoice" type="object" string="Mở hóa đơn / thanh toán"
+                            groups="spa.group_spa_billing_user" invisible="not invoice_id"/>
                     <button name="action_cancel" type="object" string="Hủy lịch"
                             invisible="status in ('done', 'cancelled')"/>
                     <field name="status" widget="statusbar" readonly="1"
@@ -48,6 +56,9 @@
                                    context="{'default_is_spa_customer': True}"/>
                         </h1>
                     </div>
+                    <group string="Nguồn booking">
+                        <field name="booking_source"/>
+                    </group>
                     <group>
                         <group string="Thông tin khách hàng">
                             <field name="customer_phone" required="1"
@@ -103,6 +114,14 @@
                             <field name="end_time" widget="float_time" required="1"/>
                         </group>
                     </group>
+                    <group string="Đơn hàng và thanh toán"
+                           groups="spa.group_spa_billing_user"
+                           invisible="not sale_order_id and not invoice_id">
+                        <field name="sale_order_id"/>
+                        <field name="invoice_id" invisible="not invoice_id"/>
+                        <field name="invoice_payment_state" widget="badge"
+                               invisible="not invoice_id"/>
+                    </group>
                     <div class="text-muted" invisible="not service_duration_minutes">
                         Hãy nhập thời lượng từng dịch vụ; giờ kết thúc được đề xuất theo tổng thời lượng chạy nối tiếp.
                     </div>
@@ -126,6 +145,7 @@
                 <field name="employee_id"/>
                 <field name="room_id"/>
                 <field name="bed_id"/>
+                <field name="booking_source"/>
                 <filter name="today" string="Hôm nay"
                         domain="[('appointment_date', '=', context_today())]"/>
                 <filter name="upcoming" string="Sắp tới"
@@ -146,6 +166,8 @@
                             context="{'group_by': 'employee_id'}"/>
                     <filter name="group_room" string="Phòng"
                             context="{'group_by': 'room_id'}"/>
+                    <filter name="group_booking_source" string="Nguồn booking"
+                            context="{'group_by': 'booking_source'}"/>
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
                 </group>
@@ -165,6 +187,7 @@
                 <field name="employee_id"/>
                 <field name="room_id"/>
                 <field name="bed_id"/>
+                <field name="booking_source"/>
                 <field name="service_summary"/>
                 <field name="status"/>
             </calendar>

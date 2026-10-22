@@ -1,10 +1,11 @@
+import json
 import re
 from datetime import datetime, time, timedelta
 
 import pytz
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 
 
 class SpaAppointment(models.Model):
@@ -47,6 +48,13 @@ class SpaAppointment(models.Model):
         domain="[('room_id', '=', room_id), ('active', '=', True)]",
         ondelete='restrict',
     )
+    booking_source = fields.Selection([
+        ('facebook', 'Facebook / Fanpage'),
+        ('zalo', 'Zalo'),
+        ('website', 'Website'),
+        ('phone', 'Gọi điện'),
+        ('walk_in', 'Đến trực tiếp'),
+    ], string='Nguồn booking')
     service_id = fields.Many2one('spa.service', string='Dịch vụ cũ')
     service_product_id = fields.Many2one(
         'product.template',
@@ -81,6 +89,26 @@ class SpaAppointment(models.Model):
         ('done', 'Hoàn thành'),
         ('cancelled', 'Đã hủy'),
     ], string='Trạng thái lịch hẹn', required=True, default='draft')
+    sale_order_id = fields.Many2one(
+        'sale.order',
+        string='Đơn hàng',
+        readonly=True,
+        copy=False,
+        ondelete='restrict',
+    )
+    invoice_id = fields.Many2one(
+        'account.move',
+        string='Hóa đơn',
+        readonly=True,
+        copy=False,
+        ondelete='restrict',
+        domain=[('move_type', '=', 'out_invoice')],
+    )
+    invoice_payment_state = fields.Selection(
+        related='invoice_id.payment_state',
+        string='Trạng thái thanh toán',
+        readonly=True,
+    )
     note = fields.Text(string='Ghi chú')
 
     appointment_line_ids = fields.One2many(
@@ -179,9 +207,124 @@ class SpaAppointment(models.Model):
 
     def action_done(self):
         self.ensure_one()
+        if not self.env.user.has_group('spa.group_spa_billing_user'):
+            raise AccessError(
+                'Bạn cần quyền Spa Billing User để hoàn tất dịch vụ và lập hóa đơn.'
+            )
         if self.status != 'in_progress':
             raise ValidationError('Chỉ dịch vụ đang thực hiện mới có thể hoàn thành.')
-        self.status = 'done'
+        order_lines = []
+        combo_selections = []
+        if self.appointment_line_ids:
+            for index, line in enumerate(self.appointment_line_ids):
+                description = line.product_id.name
+                components = line.combo_choice_ids.mapped(
+                    'combo_item_id.product_id.product_tmpl_id.name'
+                )
+                if components:
+                    description = f"{description} ({', '.join(components)})"
+                order_lines.append(
+                    self._prepare_order_line(
+                        line.product_id, description, sequence=(index + 1) * 10
+                    )
+                )
+                if line.product_id.type == 'combo':
+                    combo_choices = line.combo_choice_ids.sorted(
+                        key=lambda choice: line.product_id.combo_ids.ids.index(
+                            choice.combo_id.id
+                        )
+                    )
+                    combo_selections.append((
+                        (index + 1) * 10,
+                        [{
+                            'product_id': choice.combo_item_id.product_id.id,
+                            'combo_item_id': choice.combo_item_id.id,
+                            'no_variant_attribute_value_ids': [],
+                            'product_custom_attribute_values': [],
+                        } for choice in combo_choices],
+                    ))
+        elif self.service_product_id:
+            order_lines.append(
+                self._prepare_order_line(self.service_product_id)
+            )
+        elif self.service_id:
+            products = self.env['product.template'].search([
+                ('name', '=', self.service_id.name),
+                ('type', '=', 'service'),
+            ], limit=2)
+            if len(products) != 1:
+                raise ValidationError(
+                    'Không thể lập hóa đơn cho dịch vụ cũ này. '
+                    'Hãy liên kết dịch vụ với một sản phẩm dịch vụ Spa.'
+                )
+            order_lines.append(self._prepare_order_line(products))
+
+        if not order_lines:
+            raise ValidationError('Không có dịch vụ để tạo đơn hàng.')
+
+        order = self.env['sale.order'].create({
+            'partner_id': self.customer_id.id,
+            'origin': self.name,
+            'spa_appointment_id': self.id,
+            'order_line': [
+                fields.Command.create(line_vals) for line_vals in order_lines
+            ],
+        })
+        for sequence, selected_items in combo_selections:
+            order_line = order.order_line.filtered(
+                lambda line: line.sequence == sequence and line.product_type == 'combo'
+            )
+            order_line.selected_combo_items = json.dumps(selected_items)
+        if combo_selections:
+            order._onchange_order_line()
+        order.order_line.filtered(
+            lambda line: not line.display_type
+        ).write({'qty_delivered': 1})
+        self.write({
+            'status': 'done',
+            'sale_order_id': order.id,
+        })
+        return self.action_open_sale_order()
+
+    def _prepare_order_line(self, product, description=None, sequence=10):
+        values = {
+            'product_id': product.product_variant_id.id,
+            'name': description or product.name,
+            'product_uom_qty': 1,
+            'price_unit': product.list_price,
+            'sequence': sequence,
+        }
+        return values
+
+    def action_open_sale_order(self):
+        self.ensure_one()
+        if not self.sale_order_id:
+            raise ValidationError('Lịch hẹn này chưa có đơn hàng.')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Đơn hàng Spa',
+            'res_model': 'sale.order',
+            'view_mode': 'form',
+            'res_id': self.sale_order_id.id,
+            'target': 'current',
+        }
+
+    def action_open_invoice(self):
+        self.ensure_one()
+        if not self.env.user.has_group('spa.group_spa_billing_user'):
+            raise AccessError(
+                'Bạn cần quyền Spa Billing User để xem hóa đơn và ghi nhận thanh toán.'
+            )
+        if not self.invoice_id:
+            raise ValidationError('Lịch hẹn này chưa có hóa đơn.')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Hóa đơn thanh toán',
+            'res_model': 'account.move',
+            'view_mode': 'form',
+            'res_id': self.invoice_id.id,
+            'target': 'current',
+        }
 
     def action_cancel(self):
         self.ensure_one()

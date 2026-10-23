@@ -50,19 +50,17 @@
                            statusbar_visible="draft,confirmed,checked_in,in_progress,done,cancelled"/>
                 </header>
                 <sheet>
-                    <div class="oe_title">
-                        <h1>
-                            <field name="customer_id" placeholder="Chọn hoặc tạo khách hàng"
-                                   context="{'default_is_spa_customer': True}"/>
-                        </h1>
-                    </div>
                     <group string="Nguồn booking">
                         <field name="booking_source"/>
                     </group>
                     <group>
                         <group string="Thông tin khách hàng">
                             <field name="customer_phone" required="1"
-                                   placeholder="Nhập số điện thoại gồm 10 chữ số"/>
+                                   placeholder="Nhập số điện thoại để kiểm tra khách hàng CRM"/>
+                            <field name="customer_id"
+                                   context="{'default_customer_rank': 1, 'default_phone': customer_phone}"
+                                   placeholder="Chọn khách có sẵn hoặc nhập tên để tạo mới"
+                                   required="1"/>
                             <field name="customer_address" placeholder="Chưa có địa chỉ"/>
                         </group>
                         <group string="Thông tin dịch vụ">
@@ -99,12 +97,6 @@
                             <field name="guest_count"/>
                         </group>
                     </group>
-                    <group string="Nguồn lực phục vụ">
-                        <field name="employee_id" required="1"/>
-                        <field name="room_id" required="1"/>
-                        <field name="bed_id" required="1"
-                               domain="[('room_id', '=', room_id), ('active', '=', True)]"/>
-                    </group>
                     <group string="Thời gian đặt lịch">
                         <group>
                             <field name="appointment_date"/>
@@ -113,6 +105,15 @@
                             <field name="start_time" widget="float_time" required="1"/>
                             <field name="end_time" widget="float_time" required="1"/>
                         </group>
+                    </group>
+                    <group string="Nguồn lực phục vụ">
+                        <field name="employee_id" required="1"/>
+                        <field name="available_room_ids" invisible="1"/>
+                        <field name="available_bed_ids" invisible="1"/>
+                        <field name="resource_grid" widget="spa_resource_grid"
+                               nolabel="1" readonly="0" colspan="2"/>
+                        <field name="room_id" invisible="1" required="1"/>
+                        <field name="bed_id" invisible="1" required="1"/>
                     </group>
                     <group string="Đơn hàng và thanh toán"
                            groups="spa.group_spa_billing_user"
@@ -198,6 +199,14 @@
         <field name="name">Lịch hẹn</field>
         <field name="res_model">spa.appointment</field>
         <field name="view_mode">calendar,list,form</field>
+        <field name="search_view_id" ref="view_spa_appointment_search"/>
+    </record>
+    <record id="action_spa_service_history" model="ir.actions.act_window">
+        <field name="name">Lịch sử sử dụng dịch vụ</field>
+        <field name="res_model">spa.appointment</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('status', '=', 'done')]</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
         <field name="search_view_id" ref="view_spa_appointment_search"/>
     </record>
 </odoo>

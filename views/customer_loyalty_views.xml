@@ -3,7 +3,14 @@
         <field name="name">customer.loyalty.transaction.tree</field><field name="model">customer.loyalty.transaction</field>
         <field name="arch" type="xml">
             <list decoration-success="state == 'applied'">
-                <field name="date"/><field name="name"/><field name="partner_id"/><field name="transaction_type"/><field name="points"/><field name="state"/><field name="applied_by"/>
+                <field name="date"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="appointment_id" optional="hide"/>
+                <field name="transaction_type"/>
+                <field name="points"/>
+                <field name="state"/>
+                <field name="applied_by"/>
             </list>
         </field>
     </record>
@@ -13,8 +20,25 @@
             <form><header>
                 <button name="action_apply_points" type="object" string="Áp dụng giao dịch" class="oe_highlight" invisible="state != 'draft'" groups="spa.group_customer_management_manager"/>
                 <field name="state" widget="statusbar" statusbar_visible="draft,applied"/>
-            </header><sheet><group><group><field name="name" readonly="state == 'applied'"/><field name="partner_id" readonly="state == 'applied'"/><field name="transaction_type" readonly="state == 'applied'"/></group>
-            <group><field name="date" readonly="state == 'applied'"/><field name="points" readonly="state == 'applied'"/><field name="applied_by"/><field name="applied_at"/></group></group><field name="note"/></sheet></form>
+            </header>
+            <sheet>
+                <group>
+                    <group>
+                        <field name="name" readonly="state == 'applied'"/>
+                        <field name="partner_id" readonly="state == 'applied'"/>
+                        <field name="appointment_id" invisible="not appointment_id"/>
+                        <field name="transaction_type" readonly="state == 'applied'"/>
+                    </group>
+                    <group>
+                        <field name="date" readonly="state == 'applied'"/>
+                        <field name="points" readonly="state == 'applied'"/>
+                        <field name="applied_by"/>
+                        <field name="applied_at"/>
+                    </group>
+                </group>
+                <field name="note"/>
+            </sheet>
+            </form>
         </field>
     </record>
     <record id="view_customer_loyalty_search" model="ir.ui.view">

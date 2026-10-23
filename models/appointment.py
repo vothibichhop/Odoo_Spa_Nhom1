@@ -17,13 +17,10 @@ class SpaAppointment(models.Model):
         'res.partner',
         string='Khách hàng',
         required=True,
-        domain=[('is_spa_customer', '=', True)],
         ondelete='restrict',
     )
     customer_phone = fields.Char(
         string='Số điện thoại',
-        related='customer_id.phone',
-        readonly=False,
     )
     customer_address = fields.Char(
         string='Địa chỉ',
@@ -48,6 +45,15 @@ class SpaAppointment(models.Model):
         domain="[('room_id', '=', room_id), ('active', '=', True)]",
         ondelete='restrict',
     )
+    available_room_ids = fields.Many2many(
+        'spa.room',
+        compute='_compute_available_resources',
+    )
+    available_bed_ids = fields.Many2many(
+        'spa.bed',
+        compute='_compute_available_resources',
+    )
+    resource_grid = fields.Json(compute='_compute_available_resources')
     booking_source = fields.Selection([
         ('facebook', 'Facebook / Fanpage'),
         ('zalo', 'Zalo'),
@@ -181,11 +187,152 @@ class SpaAppointment(models.Model):
                 appointment.end_time = (
                     appointment.start_time * 60 + duration
                 ) / 60
+        self._clear_unavailable_resources()
+
+    @api.depends('appointment_date', 'start_time', 'end_time')
+    def _compute_available_resources(self):
+        room_model = self.env['spa.room']
+        bed_model = self.env['spa.bed']
+        for appointment in self:
+            active_rooms = room_model.search([('active', '=', True)])
+            active_beds = bed_model.search([
+                ('active', '=', True),
+                ('room_id', 'in', active_rooms.ids),
+            ])
+            occupied_bed_ids = set()
+            if (
+                not appointment.appointment_date
+                or appointment.start_time is False
+                or appointment.end_time is False
+                or appointment.end_time <= appointment.start_time
+            ):
+                available_beds = active_beds
+            else:
+                overlapping_domain = [
+                    ('appointment_date', '=', appointment.appointment_date),
+                    ('status', 'not in', ('cancelled', 'done')),
+                    ('start_time', '<', appointment.end_time),
+                    ('end_time', '>', appointment.start_time),
+                ]
+                if appointment._origin.id:
+                    overlapping_domain.append(('id', '!=', appointment._origin.id))
+                occupied_beds = self.search(overlapping_domain).mapped('bed_id')
+                occupied_bed_ids = set(occupied_beds.ids)
+                available_beds = active_beds - occupied_beds
+            appointment.available_bed_ids = available_beds
+            available_room_ids = set(available_beds.mapped('room_id').ids)
+            appointment.available_room_ids = active_rooms.filtered(
+                lambda room: room.id in available_room_ids
+            )
+            appointment.resource_grid = [
+                {
+                    'id': room.id,
+                    'name': room.display_name,
+                    'available': room.id in available_room_ids,
+                    'beds': [
+                        {
+                            'id': bed.id,
+                            'name': bed.display_name,
+                            'available': bed.id not in occupied_bed_ids,
+                        }
+                        for bed in active_beds.filtered(
+                            lambda bed: bed.room_id == room
+                        )
+                    ],
+                }
+                for room in active_rooms
+            ]
+
+    @api.onchange('appointment_date', 'start_time', 'end_time')
+    def _onchange_resource_availability(self):
+        self._clear_unavailable_resources()
+
+    def _clear_unavailable_resources(self):
+        for appointment in self:
+            if (
+                appointment.room_id
+                and appointment.room_id not in appointment.available_room_ids
+            ):
+                appointment.room_id = False
+                appointment.bed_id = False
+            elif (
+                appointment.bed_id
+                and appointment.bed_id not in appointment.available_bed_ids
+            ):
+                appointment.bed_id = False
 
     @api.onchange('room_id')
     def _onchange_room_id(self):
         if self.bed_id and self.bed_id.room_id != self.room_id:
             self.bed_id = False
+
+    @api.onchange('customer_phone')
+    def _onchange_customer_phone(self):
+        for appointment in self:
+            phone = re.sub(r'\D', '', appointment.customer_phone or '')
+            appointment.customer_id = False
+            if len(phone) != 10:
+                continue
+
+            phone_suffix = phone[-6:]
+            candidates = self.env['res.partner'].with_context(
+                active_test=False
+            ).search([
+                '|',
+                ('phone', 'ilike', phone_suffix),
+                ('mobile', 'ilike', phone_suffix),
+            ], limit=100)
+            matching_customers = candidates.filtered(
+                lambda partner: any(
+                    re.sub(r'\D', '', number or '') == phone
+                    for number in (partner.phone, partner.mobile)
+                )
+            )
+            if len(matching_customers) == 1:
+                customer = matching_customers
+                appointment.customer_id = customer
+                return {
+                    'warning': {
+                        'title': 'Đã tìm thấy khách hàng',
+                        'message': (
+                            f'Đã tìm thấy hồ sơ CRM "{customer.display_name}" '
+                            'và tự động chọn khách hàng này.'
+                        ),
+                        'type': 'notification',
+                    },
+                }
+            if len(matching_customers) > 1:
+                return {
+                    'warning': {
+                        'title': 'Có nhiều khách hàng trùng số điện thoại',
+                        'message': (
+                            'Vui lòng chọn đúng khách hàng CRM trong trường '
+                            '"Khách hàng".'
+                        ),
+                        'type': 'notification',
+                    },
+                }
+            return {
+                'warning': {
+                    'title': 'Chưa có hồ sơ khách hàng',
+                    'message': (
+                        'Không tìm thấy khách hàng CRM với số điện thoại này. '
+                        'Hãy tạo hoặc chọn hồ sơ khách hàng trước khi lưu lịch hẹn.'
+                    ),
+                    'type': 'notification',
+                },
+            }
+
+    @api.onchange('customer_id')
+    def _onchange_customer_id(self):
+        for appointment in self:
+            if appointment.customer_id:
+                customer_phone = (
+                    appointment.customer_id.phone
+                    or appointment.customer_id.mobile
+                )
+                if customer_phone:
+                    appointment.customer_phone = customer_phone
 
     def action_confirm(self):
         self.ensure_one()
@@ -286,6 +433,49 @@ class SpaAppointment(models.Model):
         })
         return self.action_open_sale_order()
 
+    def _award_loyalty_points(self):
+        self.ensure_one()
+        invoice = self.invoice_id
+        if (
+            not invoice
+            or invoice.state != 'posted'
+            or invoice.payment_state != 'paid'
+        ):
+            return
+
+        transaction_model = self.env['customer.loyalty.transaction'].sudo()
+        existing_transaction = transaction_model.search(
+            [('appointment_id', '=', self.id)],
+            limit=1,
+        )
+        if existing_transaction:
+            return existing_transaction
+
+        vnd_currency = self.env.ref('base.VND')
+        amount_vnd = invoice.currency_id._convert(
+            invoice.amount_total,
+            vnd_currency,
+            invoice.company_id,
+            fields.Date.context_today(self),
+        )
+        points = int(amount_vnd / 10_000)
+        if points <= 0:
+            return
+
+        transaction = transaction_model.create({
+            'name': f'Tích điểm từ lịch hẹn {self.display_name}',
+            'partner_id': self.customer_id.id,
+            'appointment_id': self.id,
+            'date': fields.Date.context_today(self),
+            'transaction_type': 'earn',
+            'points': points,
+            'note': (
+                f'Tự động cộng {points} điểm từ tổng chi tiêu '
+                f'{vnd_currency.round(amount_vnd):,.0f} VND.'
+            ),
+        })
+        transaction.action_apply_points()
+
     def _prepare_order_line(self, product, description=None, sequence=10):
         values = {
             'product_id': product.product_variant_id.id,
@@ -376,7 +566,8 @@ class SpaAppointment(models.Model):
     @api.constrains('customer_phone')
     def _check_customer_phone(self):
         for appointment in self:
-            if not re.fullmatch(r'[0-9]{10}', appointment.customer_phone or ''):
+            phone = re.sub(r'\D', '', appointment.customer_phone or '')
+            if not re.fullmatch(r'[0-9]{10}', phone):
                 raise ValidationError('Số điện thoại phải gồm đúng 10 chữ số.')
 
     @api.constrains(

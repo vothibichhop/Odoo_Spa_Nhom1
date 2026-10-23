@@ -8,15 +8,15 @@
         parent="menu_customer_management_root" action="action_spa_room" sequence="6"
         groups="spa.group_customer_management_manager"/>
     <menuitem id="menu_customer_care_need" name="Nhu cầu chăm sóc"
-        parent="menu_customer_management_root" action="action_customer_care_need" sequence="10"
+        parent="crm.crm_menu_sales" action="action_customer_care_need" sequence="6"
+        groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_spa_service_history" name="Lịch sử sử dụng dịch vụ"
+        parent="crm.crm_menu_sales" action="action_spa_service_history" sequence="7"
         groups="spa.group_customer_management_user"/>
     <menuitem id="menu_customer_skin_profile" name="Hồ sơ tình trạng da"
         parent="menu_customer_management_root" action="action_customer_skin_profile" sequence="20"
         groups="spa.group_customer_management_user"/>
     <menuitem id="menu_customer_treatment" name="Liệu trình khách hàng"
         parent="menu_customer_management_root" action="action_customer_treatment" sequence="30"
-        groups="spa.group_customer_management_user"/>
-    <menuitem id="menu_customer_loyalty" name="Điểm tích lũy"
-        parent="menu_customer_management_root" action="action_customer_loyalty" sequence="40"
         groups="spa.group_customer_management_user"/>
 </odoo>

@@ -10,4 +10,6 @@ from . import bed
 from . import appointment
 from . import appointment_line
 from . import sale_order
+from . import account_move
 from . import invoice_line
+from . import hr_employee

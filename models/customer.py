@@ -1,15 +1,22 @@
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     is_spa_customer = fields.Boolean(string='Khách hàng Spa', default=False, copy=False, index=True)
     spa_customer_code = fields.Char(string='Mã khách hàng Spa', copy=False, index=True)
-    customer_code = fields.Char(string='Mã khách hàng', copy=False, index=True)
+    customer_code = fields.Char(
+        string='Mã khách hàng',
+        copy=False,
+        index=True,
+        readonly=True,
+    )
     customer_type = fields.Selection([
-        ('new', 'Khách hàng mới'),
-        ('regular', 'Khách hàng thường xuyên'),
-        ('vip', 'Khách hàng VIP'),
+        ('new', 'Mới'),
+        ('silver', 'Bạc'),
+        ('gold', 'Vàng'),
+        ('diamond', 'Kim cương'),
     ], string='Phân loại khách hàng', default='new', tracking=True)
     spa_birthday = fields.Date(string='Ngày sinh')
     spa_gender = fields.Selection(
@@ -40,6 +47,42 @@ class ResPartner(models.Model):
     loyalty_transaction_ids = fields.One2many(
         'customer.loyalty.transaction', 'partner_id', string='Lịch sử điểm'
     )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        partners = super().create(vals_list)
+        customers = partners.filtered(
+            lambda partner: (
+                partner.customer_rank > 0 or partner.is_spa_customer
+            ) and not partner.customer_code
+        )
+        for partner in customers:
+            partner.customer_code = self._next_customer_code()
+        return partners
+
+    @api.model
+    def _next_customer_code(self):
+        sequence = self.env['ir.sequence']
+        while True:
+            code = sequence.next_by_code('spa.customer')
+            if not code:
+                raise UserError('Không tìm thấy sequence tạo mã khách hàng Spa.')
+            existing_code = self.with_context(active_test=False).search(
+                ['|', ('customer_code', '=', code), ('spa_customer_code', '=', code)],
+                limit=1,
+            )
+            if not existing_code:
+                return code
+
+    @api.model
+    def _customer_type_for_loyalty_points(self, points):
+        if points >= 2000:
+            return 'diamond'
+        if points >= 500:
+            return 'gold'
+        if points > 100:
+            return 'silver'
+        return 'new'
 
     @api.depends('spa_appointment_ids')
     def _compute_spa_appointment_count(self):

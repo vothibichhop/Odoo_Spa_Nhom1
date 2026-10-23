@@ -10,6 +10,13 @@ class CustomerLoyaltyTransaction(models.Model):
     partner_id = fields.Many2one(
         'res.partner', string='Khách hàng', required=True, index=True, ondelete='restrict'
     )
+    appointment_id = fields.Many2one(
+        'spa.appointment',
+        string='Lịch hẹn Spa',
+        readonly=True,
+        copy=False,
+        ondelete='restrict',
+    )
     date = fields.Date(string='Ngày giao dịch', default=fields.Date.context_today, required=True)
     transaction_type = fields.Selection([
         ('earn', 'Cộng điểm'),
@@ -25,6 +32,14 @@ class CustomerLoyaltyTransaction(models.Model):
     ], string='Trạng thái', default='draft', readonly=True, copy=False, required=True)
     applied_by = fields.Many2one('res.users', string='Người áp dụng', readonly=True, copy=False)
     applied_at = fields.Datetime(string='Thời điểm áp dụng', readonly=True, copy=False)
+
+    _sql_constraints = [
+        (
+            'spa_appointment_loyalty_unique',
+            'unique(appointment_id)',
+            'Mỗi lịch hẹn Spa chỉ được cộng điểm một lần.',
+        ),
+    ]
 
     @api.constrains('points')
     def _check_points_positive(self):
@@ -68,7 +83,13 @@ class CustomerLoyaltyTransaction(models.Model):
                     raise UserError(_('Khách hàng không đủ điểm để thực hiện giao dịch này.'))
                 new_points = current_points - rec.points
 
-            rec.partner_id.sudo().write({'loyalty_point': new_points})
+            partner = rec.partner_id.sudo()
+            partner.write({
+                'loyalty_point': new_points,
+                'customer_type': partner._customer_type_for_loyalty_points(
+                    new_points
+                ),
+            })
             rec.write({
                 'state': 'applied',
                 'applied_by': self.env.user.id,

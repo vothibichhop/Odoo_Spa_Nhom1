@@ -40,6 +40,7 @@ class SaleOrder(models.Model):
 
         invoice.action_post()
         self.spa_appointment_id.invoice_id = invoice[:1]
+        self.spa_appointment_id._award_loyalty_points()
         return {
             'type': 'ir.actions.act_window',
             'name': 'Hóa đơn thanh toán',

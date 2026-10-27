@@ -28,6 +28,19 @@
         <field name="search_view_id" ref="product.product_template_search_view"/>
     </record>
 
+    <record id="action_spa_products" model="ir.actions.act_window">
+        <field name="name">Sản phẩm Spa</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('type', '=', 'consu'), ('is_storable', '=', True), ('sale_ok', '=', True)]</field>
+        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': True}</field>
+        <field name="search_view_id" ref="product.product_template_search_view"/>
+    </record>
+
+    <menuitem id="menu_spa_products" name="Sản phẩm Spa"
+        parent="sale.product_menu_catalog" action="action_spa_products"
+        sequence="4" groups="sales_team.group_sale_salesman"/>
+
     <menuitem id="menu_spa_product_services" name="Dịch vụ Spa"
         parent="sale.product_menu_catalog" action="action_spa_product_services"
         sequence="5" groups="sales_team.group_sale_salesman"/>

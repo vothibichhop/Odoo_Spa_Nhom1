@@ -1,6 +1,13 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
+SPA_LOYALTY_TIERS = (
+    ('diamond', 2000, 20.0),
+    ('gold', 1500, 10.0),
+    ('silver', 500, 5.0),
+)
+
+
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
@@ -76,13 +83,20 @@ class ResPartner(models.Model):
 
     @api.model
     def _customer_type_for_loyalty_points(self, points):
-        if points >= 2000:
-            return 'diamond'
-        if points >= 500:
-            return 'gold'
-        if points > 100:
-            return 'silver'
+        for customer_type, minimum_points, _ in SPA_LOYALTY_TIERS:
+            if points >= minimum_points:
+                return customer_type
         return 'new'
+
+    def _get_spa_tier_discount_percentage(self):
+        self.ensure_one()
+        for customer_type, minimum_points, discount in SPA_LOYALTY_TIERS:
+            if (
+                self.customer_type == customer_type
+                and self.loyalty_point >= minimum_points
+            ):
+                return discount
+        return 0.0
 
     @api.depends('spa_appointment_ids')
     def _compute_spa_appointment_count(self):

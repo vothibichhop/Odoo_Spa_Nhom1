@@ -178,7 +178,7 @@ class ProductTemplate(models.Model):
         })
 
     @api.model
-    def _create_spa_combo_product(self, key, name, category, choice_specs, duration=0):
+    def _create_spa_combo_product(self, key, name, category, choice_specs):
         descriptions = [
             f"{choice_name}: {products.name}"
             if len(products) == 1 else f"{choice_name} (chọn 1 dịch vụ)"
@@ -204,7 +204,6 @@ class ProductTemplate(models.Model):
             'list_price': self.env.company.currency_id.round(base_price),
             'spa_combo_category': category,
             'spa_combo_key': key,
-            'spa_duration_minutes': duration,
             'description_sale': description_sale,
             'combo_ids': [Command.set(choices.ids)],
         })
@@ -217,29 +216,6 @@ class ProductTemplate(models.Model):
             ]
             self._create_spa_combo_product(key, name, category, choice_specs)
 
-        primary_services = self.search([
-            ('type', '=', 'service'),
-            ('sale_ok', '=', True),
-            ('spa_category', 'in', ['massage', 'facial', 'body_care', 'spa_package']),
-        ])
-        secondary_services = self.search([
-            ('type', '=', 'service'),
-            ('sale_ok', '=', True),
-            ('spa_category', 'in', ['hair', 'nail']),
-        ])
-        if not primary_services or not secondary_services:
-            raise UserError(_('Không thể tạo combo theo thời lượng: thiếu dịch vụ chính hoặc phụ.'))
-
-        duration_combos = (
-            ('duration_60', 'Combo 60 phút - 1 dịch vụ chính + 1 dịch vụ phụ', 60,
-             [('Dịch vụ chính', primary_services), ('Dịch vụ phụ', secondary_services)]),
-            ('duration_90', 'Combo 90 phút - 2 dịch vụ chính', 90,
-             [('Dịch vụ chính 1', primary_services), ('Dịch vụ chính 2', primary_services)]),
-            ('duration_120', 'Combo 120 phút - 3 dịch vụ chính', 120,
-             [('Dịch vụ chính 1', primary_services), ('Dịch vụ chính 2', primary_services),
-              ('Dịch vụ chính 3', primary_services)]),
-        )
-        for key, name, duration, choice_specs in duration_combos:
-            self._create_spa_combo_product(
-                key, name, 'duration', choice_specs, duration=duration
-            )
+        self.search([
+            ('spa_combo_key', 'in', ['duration_60', 'duration_90', 'duration_120']),
+        ]).write({'active': False})

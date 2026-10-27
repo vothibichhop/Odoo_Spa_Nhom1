@@ -90,6 +90,10 @@ class CustomerLoyaltyTransaction(models.Model):
                     new_points
                 ),
             })
+            partner.env['sale.order'].search([
+                ('partner_id', '=', partner.id),
+                ('state', 'in', ('draft', 'sent')),
+            ])._update_spa_tier_discount()
             rec.write({
                 'state': 'applied',
                 'applied_by': self.env.user.id,

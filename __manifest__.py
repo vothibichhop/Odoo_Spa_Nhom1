@@ -1,9 +1,9 @@
 {
     'name': 'Spa Management',
-    'version': '18.0.1.0.15',
+    'version': '18.0.1.0.19',
     'summary': 'Quản lý dịch vụ, bảng giá, bán hàng, lịch hẹn, nhân sự, kho và khách hàng Spa',
     'category': 'Sales/CRM',
-    'depends': ['base', 'contacts', 'crm', 'mail', 'sale', 'sale_loyalty', 'account', 'hr'],
+    'depends': ['base', 'contacts', 'crm', 'mail', 'sale', 'sale_stock', 'sale_loyalty', 'account', 'hr'],
     'data': [
         'security/groups.xml',
         'security/ir.model.access.csv',
@@ -13,6 +13,7 @@
         'data/customer_sequence.xml',
         'data/cleanup_legacy_spa_service_ui.xml',
         'data/spa_service_sequence.xml',
+        'data/spa_retail_products.xml',
         'data/spa_product_service_data.xml',
         'data/assign_spa_service_codes.xml',
         'data/spa_combo_data.xml',

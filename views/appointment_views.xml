@@ -82,7 +82,7 @@
                                            invisible="product_id.type != 'combo'">
                                         <field name="combo_choice_ids" nolabel="1">
                                             <list editable="bottom" create="0" delete="0">
-                                                <field name="combo_id" readonly="1"/>
+                                                <field name="combo_id" readonly="1" force_save="1"/>
                                                 <field name="combo_item_id"
                                                        domain="[('combo_id', '=', combo_id)]"/>
                                             </list>

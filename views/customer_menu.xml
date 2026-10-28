@@ -19,4 +19,10 @@
     <menuitem id="menu_customer_treatment" name="Liệu trình khách hàng"
         parent="menu_customer_management_root" action="action_customer_treatment" sequence="30"
         groups="spa.group_customer_management_user"/>
+    <record id="menu_customer_skin_profile" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="menu_customer_treatment" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
 </odoo>
